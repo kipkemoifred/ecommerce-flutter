@@ -1,0 +1,455 @@
+import '../../data/models/category_model.dart';
+import '../../data/models/product_model.dart';
+import '../../data/models/user_model.dart';
+import '../../data/models/order_model.dart';
+import '../../data/models/cart_item_model.dart';
+import '../../data/models/review_model.dart';
+import '../../data/models/notification_model.dart';
+import '../constants/app_constants.dart';
+
+class DummyData {
+  // Pre-configured Users for Demo / Multi-Role Testing
+  static final UserModel customerUser = UserModel(
+    id: 'user_cust_1',
+    name: 'Sarah Connor',
+    email: 'sarah@example.com',
+    role: AppConstants.roleCustomer,
+    avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80',
+    phone: '+1 (555) 789-0123',
+    address: '452 Elm Street, Apt 3B, New York, NY 10001',
+    totalSpent: 489.95,
+    totalOrders: 3,
+  );
+
+  static final UserModel sellerUser = UserModel(
+    id: 'user_sell_1',
+    name: 'TechNest Electronics',
+    email: 'seller@technest.com',
+    role: AppConstants.roleSeller,
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+    phone: '+1 (555) 456-7890',
+    address: '88 Innovation Way, San Jose, CA 95134',
+    storeName: 'TechNest Official',
+    storeDescription: 'Certified seller of premium audio, smart home devices, and gadgets.',
+    isVerified: true,
+  );
+
+  static final UserModel adminUser = UserModel(
+    id: 'user_admin_1',
+    name: 'Alex Rivera',
+    email: 'admin@shopnest.com',
+    role: AppConstants.roleAdmin,
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+    phone: '+1 (555) 999-0000',
+    address: '100 Executive Blvd, Seattle, WA 98101',
+  );
+
+  static final List<UserModel> initialUsers = [
+    customerUser,
+    sellerUser,
+    adminUser,
+    UserModel(
+      id: 'user_cust_2',
+      name: 'Michael Chen',
+      email: 'michael@example.com',
+      role: AppConstants.roleCustomer,
+      avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
+      totalSpent: 1240.50,
+      totalOrders: 7,
+    ),
+    UserModel(
+      id: 'user_sell_2',
+      name: 'Nordic Living Studio',
+      email: 'contact@nordicliving.com',
+      role: AppConstants.roleSeller,
+      avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80',
+      storeName: 'Nordic Living',
+      storeDescription: 'Minimalist Scandinavian furniture and home decor accessories.',
+      isVerified: true,
+    ),
+  ];
+
+  // Categories
+  static final List<CategoryModel> categories = [
+    CategoryModel(
+      id: 'cat_all',
+      name: 'All',
+      icon: 'apps',
+      imageUrl: 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?auto=format&fit=crop&w=300&q=80',
+      productCount: 12,
+    ),
+    CategoryModel(
+      id: 'cat_electronics',
+      name: 'Electronics',
+      icon: 'headphones',
+      imageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=300&q=80',
+      productCount: 4,
+    ),
+    CategoryModel(
+      id: 'cat_fashion',
+      name: 'Fashion',
+      icon: 'checkroom',
+      imageUrl: 'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=300&q=80',
+      productCount: 3,
+    ),
+    CategoryModel(
+      id: 'cat_home',
+      name: 'Home & Living',
+      icon: 'weekend',
+      imageUrl: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=300&q=80',
+      productCount: 2,
+    ),
+    CategoryModel(
+      id: 'cat_gaming',
+      name: 'Gaming',
+      icon: 'sports_esports',
+      imageUrl: 'https://images.unsplash.com/photo-1600080972464-8e5f35f63d08?auto=format&fit=crop&w=300&q=80',
+      productCount: 2,
+    ),
+    CategoryModel(
+      id: 'cat_footwear',
+      name: 'Footwear',
+      icon: 'roller_skating',
+      imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=300&q=80',
+      productCount: 1,
+    ),
+  ];
+
+  // Initial Products
+  static final List<ProductModel> initialProducts = [
+    ProductModel(
+      id: 'prod_1',
+      title: 'Sony WH-1000XM5 Wireless Noise Cancelling Headphones',
+      description: 'Industry-leading noise cancellation optimized to you. Magnificently engineered for magnificent sound. Crystal clear hands-free calling with 4 beamforming microphones.',
+      price: 349.99,
+      originalPrice: 399.99,
+      category: 'Electronics',
+      images: [
+        'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80',
+        'https://images.unsplash.com/photo-1484704849700-f032a568e944?auto=format&fit=crop&w=600&q=80',
+      ],
+      sellerId: 'user_sell_1',
+      sellerName: 'TechNest Official',
+      stock: 45,
+      rating: 4.8,
+      reviewCount: 142,
+      isFeatured: true,
+      tags: ['audio', 'wireless', 'anc', 'bluetooth'],
+      colors: ['Midnight Black', 'Silver Grey'],
+      sizes: ['Standard'],
+    ),
+    ProductModel(
+      id: 'prod_2',
+      title: 'Nike Air Max 270 React Running Shoes',
+      description: 'The Nike Air Max 270 React combines Nike\'s tallest Air unit with soft, springy Nike React foam for cushioning that doesn\'t quit. Inspired by the Air Max pantheon.',
+      price: 159.99,
+      originalPrice: 190.00,
+      category: 'Footwear',
+      images: [
+        'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80',
+        'https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=600&q=80',
+      ],
+      sellerId: 'user_sell_1',
+      sellerName: 'TechNest Official',
+      stock: 18,
+      rating: 4.7,
+      reviewCount: 98,
+      isFeatured: true,
+      tags: ['shoes', 'sneakers', 'sports', 'running'],
+      colors: ['Crimson Red', 'Triple Black', 'Pure Platinum'],
+      sizes: ['US 8', 'US 9', 'US 10', 'US 11'],
+    ),
+    ProductModel(
+      id: 'prod_3',
+      title: 'Apple Watch Series 9 GPS 45mm Starlight',
+      description: 'Smarter. Brighter. Mightier. Powerful S9 SiP. A magical new way to use your Apple Watch without touching the screen. An advanced display with double the brightness.',
+      price: 429.00,
+      originalPrice: 479.00,
+      category: 'Electronics',
+      images: [
+        'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80',
+        'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=600&q=80',
+      ],
+      sellerId: 'user_sell_1',
+      sellerName: 'TechNest Official',
+      stock: 32,
+      rating: 4.9,
+      reviewCount: 230,
+      isFeatured: true,
+      tags: ['smartwatch', 'apple', 'fitness', 'health'],
+      colors: ['Starlight', 'Midnight', 'Product Red'],
+      sizes: ['41mm', '45mm'],
+    ),
+    ProductModel(
+      id: 'prod_4',
+      title: 'Ergonomic Scandinavian Accent Armchair',
+      description: 'Crafted with premium textured linen and solid oak legs, this minimalist armchair provides exceptional lumbar support and elevated aesthetic for modern living rooms.',
+      price: 279.50,
+      originalPrice: 320.00,
+      category: 'Home & Living',
+      images: [
+        'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=600&q=80',
+        'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?auto=format&fit=crop&w=600&q=80',
+      ],
+      sellerId: 'user_sell_2',
+      sellerName: 'Nordic Living',
+      stock: 12,
+      rating: 4.6,
+      reviewCount: 45,
+      isFeatured: false,
+      tags: ['furniture', 'chair', 'interior', 'nordic'],
+      colors: ['Oatmeal Beige', 'Slate Charcoal'],
+      sizes: ['One Size'],
+    ),
+    ProductModel(
+      id: 'prod_5',
+      title: 'Mechanical Wireless Gaming Keyboard RGB',
+      description: 'Low-profile mechanical switches with lightning-fast 1ms wireless connection. Customizable per-key RGB lighting with long-lasting 40-hour rechargeable battery.',
+      price: 119.99,
+      originalPrice: 149.99,
+      category: 'Gaming',
+      images: [
+        'https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?auto=format&fit=crop&w=600&q=80',
+      ],
+      sellerId: 'user_sell_1',
+      sellerName: 'TechNest Official',
+      stock: 60,
+      rating: 4.8,
+      reviewCount: 84,
+      isFeatured: true,
+      tags: ['keyboard', 'gaming', 'rgb', 'mechanical'],
+      colors: ['Matte Black', 'Frost White'],
+      sizes: ['Tenkeyless', 'Full Size'],
+    ),
+    ProductModel(
+      id: 'prod_6',
+      title: 'Premium Italian Leather Bifold Wallet',
+      description: 'Handmade with 100% full-grain Italian calfskin leather. Features RFID-blocking technology, 8 card slots, and dual cash compartments. Patinas beautifully over time.',
+      price: 65.00,
+      originalPrice: 85.00,
+      category: 'Fashion',
+      images: [
+        'https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=600&q=80',
+      ],
+      sellerId: 'user_sell_2',
+      sellerName: 'Nordic Living',
+      stock: 25,
+      rating: 4.5,
+      reviewCount: 37,
+      isFeatured: false,
+      tags: ['fashion', 'leather', 'accessories', 'wallet'],
+      colors: ['Vintage Tan', 'Espresso Brown', 'Onyx Black'],
+      sizes: ['Compact'],
+    ),
+    ProductModel(
+      id: 'prod_7',
+      title: 'Minimalist Ceramic Pour-Over Coffee Maker Set',
+      description: 'Elevate your morning routine. High-grade heat-resistant borosilicate glass server with matte ceramic dripper and reusable stainless steel mesh filter.',
+      price: 48.00,
+      originalPrice: null,
+      category: 'Home & Living',
+      images: [
+        'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=600&q=80',
+      ],
+      sellerId: 'user_sell_2',
+      sellerName: 'Nordic Living',
+      stock: 40,
+      rating: 4.9,
+      reviewCount: 52,
+      isFeatured: false,
+      tags: ['coffee', 'kitchen', 'ceramic', 'lifestyle'],
+      colors: ['Matte White', 'Charcoal Grey'],
+      sizes: ['600ml'],
+    ),
+    ProductModel(
+      id: 'prod_8',
+      title: 'Pro Wireless Gaming Mouse 26,000 DPI',
+      description: 'Ultra-lightweight 60g design with optical switches rated for 90 million clicks. Sensor precision up to 26,000 DPI and zero-latency wireless transmission.',
+      price: 89.99,
+      originalPrice: 109.99,
+      category: 'Gaming',
+      images: [
+        'https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?auto=format&fit=crop&w=600&q=80',
+      ],
+      sellerId: 'user_sell_1',
+      sellerName: 'TechNest Official',
+      stock: 35,
+      rating: 4.7,
+      reviewCount: 65,
+      isFeatured: false,
+      tags: ['mouse', 'gaming', 'esports', 'wireless'],
+      colors: ['Black', 'White'],
+      sizes: ['Medium'],
+    ),
+  ];
+
+  // Initial Reviews
+  static final List<ReviewModel> initialReviews = [
+    ReviewModel(
+      id: 'rev_1',
+      productId: 'prod_1',
+      userId: 'user_cust_1',
+      userName: 'Sarah Connor',
+      rating: 5.0,
+      comment: 'Absolutely phenomenal noise cancellation! I use it on long flights and daily commutes, battery lasts forever.',
+      createdAt: DateTime.now().subtract(const Duration(days: 2)),
+    ),
+    ReviewModel(
+      id: 'rev_2',
+      productId: 'prod_1',
+      userId: 'user_cust_2',
+      userName: 'Michael Chen',
+      rating: 4.5,
+      comment: 'Audio clarity is top tier. Very comfortable cushions, though the headband took a few days to break in.',
+      createdAt: DateTime.now().subtract(const Duration(days: 5)),
+    ),
+    ReviewModel(
+      id: 'rev_3',
+      productId: 'prod_2',
+      userId: 'user_cust_1',
+      userName: 'Sarah Connor',
+      rating: 5.0,
+      comment: 'Super light and extremely bouncy cushion! Colors look even better in person.',
+      createdAt: DateTime.now().subtract(const Duration(days: 8)),
+    ),
+  ];
+
+  // Initial Orders for Customer & Seller
+  static final List<OrderModel> initialOrders = [
+    OrderModel(
+      id: 'ORD-90214',
+      customerId: 'user_cust_1',
+      customerName: 'Sarah Connor',
+      customerEmail: 'sarah@example.com',
+      items: [
+        CartItemModel(
+          product: initialProducts[0],
+          quantity: 1,
+          selectedColor: 'Midnight Black',
+        ),
+      ],
+      subtotal: 349.99,
+      shippingFee: 0.0,
+      tax: 28.00,
+      discount: 20.00,
+      totalAmount: 357.99,
+      shippingAddress: '452 Elm Street, Apt 3B, New York, NY 10001',
+      paymentMethod: 'Credit Card (••4242)',
+      status: AppConstants.orderShipped,
+      trackingNumber: 'TRK-US-8923412',
+      createdAt: DateTime.now().subtract(const Duration(days: 1)),
+      timeline: [
+        OrderTrackingStep(
+          title: 'Order Placed',
+          description: 'Your order was successfully placed and verified.',
+          timestamp: DateTime.now().subtract(const Duration(days: 1, hours: 4)),
+          isCompleted: true,
+        ),
+        OrderTrackingStep(
+          title: 'Order Confirmed',
+          description: 'Seller TechNest Official confirmed your items.',
+          timestamp: DateTime.now().subtract(const Duration(days: 1, hours: 2)),
+          isCompleted: true,
+        ),
+        OrderTrackingStep(
+          title: 'Shipped',
+          description: 'Package handed over to FedEx Express.',
+          timestamp: DateTime.now().subtract(const Duration(hours: 12)),
+          isCompleted: true,
+        ),
+        OrderTrackingStep(
+          title: 'Out for Delivery',
+          description: 'Courier is en route to your shipping address.',
+          timestamp: DateTime.now().add(const Duration(hours: 6)),
+          isCompleted: false,
+        ),
+        OrderTrackingStep(
+          title: 'Delivered',
+          description: 'Package delivered at your front door.',
+          timestamp: DateTime.now().add(const Duration(hours: 10)),
+          isCompleted: false,
+        ),
+      ],
+    ),
+    OrderModel(
+      id: 'ORD-89412',
+      customerId: 'user_cust_1',
+      customerName: 'Sarah Connor',
+      customerEmail: 'sarah@example.com',
+      items: [
+        CartItemModel(
+          product: initialProducts[1],
+          quantity: 1,
+          selectedColor: 'Crimson Red',
+          selectedSize: 'US 9',
+        ),
+      ],
+      subtotal: 159.99,
+      shippingFee: 5.99,
+      tax: 12.80,
+      discount: 0.0,
+      totalAmount: 178.78,
+      shippingAddress: '452 Elm Street, Apt 3B, New York, NY 10001',
+      paymentMethod: 'Apple Pay',
+      status: AppConstants.orderDelivered,
+      trackingNumber: 'TRK-US-7712390',
+      createdAt: DateTime.now().subtract(const Duration(days: 14)),
+      timeline: [
+        OrderTrackingStep(
+          title: 'Order Placed',
+          description: 'Order placed successfully.',
+          timestamp: DateTime.now().subtract(const Duration(days: 14)),
+          isCompleted: true,
+        ),
+        OrderTrackingStep(
+          title: 'Confirmed',
+          description: 'Payment authorized.',
+          timestamp: DateTime.now().subtract(const Duration(days: 14)),
+          isCompleted: true,
+        ),
+        OrderTrackingStep(
+          title: 'Shipped',
+          description: 'Carrier picked up parcel.',
+          timestamp: DateTime.now().subtract(const Duration(days: 13)),
+          isCompleted: true,
+        ),
+        OrderTrackingStep(
+          title: 'Delivered',
+          description: 'Handed directly to resident.',
+          timestamp: DateTime.now().subtract(const Duration(days: 11)),
+          isCompleted: true,
+        ),
+      ],
+    ),
+  ];
+
+  // Initial Notifications
+  static final List<NotificationModel> initialNotifications = [
+    NotificationModel(
+      id: 'notif_1',
+      userId: 'user_cust_1',
+      title: 'Order Shipped! 🚚',
+      message: 'Your order #ORD-90214 is on the way. Tap to track your package.',
+      type: 'order',
+      relatedId: 'ORD-90214',
+      timestamp: DateTime.now().subtract(const Duration(hours: 3)),
+    ),
+    NotificationModel(
+      id: 'notif_2',
+      userId: 'user_cust_1',
+      title: 'Flash Sale: 20% Off Audio gear! 🎉',
+      message: 'Use code SOUND20 during checkout for extra discounts on wireless headphones.',
+      type: 'promo',
+      timestamp: DateTime.now().subtract(const Duration(days: 1)),
+    ),
+    NotificationModel(
+      id: 'notif_3',
+      userId: 'user_sell_1',
+      title: 'New Order Received! 💰',
+      message: 'Sarah Connor purchased Sony WH-1000XM5. Please prepare shipment.',
+      type: 'order',
+      relatedId: 'ORD-90214',
+      timestamp: DateTime.now().subtract(const Duration(days: 1)),
+    ),
+  ];
+}
