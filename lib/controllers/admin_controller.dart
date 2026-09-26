@@ -22,22 +22,41 @@ class AdminController extends GetxController {
   List<OrderModel> get allOrders => orderController.orders;
 
   double get totalMarketplaceRevenue {
-    final fromOrders = allOrders
+    return allOrders
         .where((o) => !o.isCancelled)
         .fold(0.0, (sum, o) => sum + o.totalAmount);
-    return fromOrders > 0 ? fromOrders + 14200.0 : 15840.50;
   }
 
-  int get totalOrdersCount => allOrders.length + 84;
+  int get totalOrdersCount => allOrders.length;
 
   int get totalUsersCount => authController.allUsers.length;
 
   int get pendingSellerApprovals =>
       sellers.where((s) => !s.isVerified).length;
 
-  // Chart data
-  List<double> get monthlyRevenueData => [12400, 14200, 13800, 16500, 18900, 22400];
-  List<String> get monthsLabels => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+  // Chart data computed from real orders
+  List<double> get monthlyRevenueData {
+    final totals = List.filled(6, 0.0);
+    final now = DateTime.now();
+    for (final order in allOrders) {
+      if (!order.isCancelled) {
+        final monthDiff = (now.year - order.createdAt.year) * 12 + now.month - order.createdAt.month;
+        if (monthDiff >= 0 && monthDiff < 6) {
+          final idx = 5 - monthDiff;
+          totals[idx] += order.totalAmount;
+        }
+      }
+    }
+    return totals;
+  }
+  List<String> get monthsLabels {
+    const names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final now = DateTime.now();
+    return List.generate(6, (i) {
+      final month = ((now.month - 1 - (5 - i)) % 12 + 12) % 12;
+      return names[month];
+    });
+  }
 
   void toggleUserStatus(String userId) {
     authController.toggleUserStatus(userId);

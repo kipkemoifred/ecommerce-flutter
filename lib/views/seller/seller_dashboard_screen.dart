@@ -163,13 +163,17 @@ class SellerDashboardScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  SizedBox(
-                    height: 180,
-                    child: BarChart(
-                      BarChartData(
-                        alignment: BarChartAlignment.spaceAround,
-                        maxY: 1500,
-                        barTouchData: BarTouchData(enabled: true),
+                  Builder(
+                    builder: (context) {
+                      final maxSale = sellerController.weeklySalesData.fold(0.0, (m, v) => v > m ? v : m);
+                      final effectiveMaxY = maxSale > 1200 ? (maxSale * 1.25) : 1500.0;
+                      return SizedBox(
+                        height: 180,
+                        child: BarChart(
+                          BarChartData(
+                            alignment: BarChartAlignment.spaceAround,
+                            maxY: effectiveMaxY,
+                            barTouchData: BarTouchData(enabled: true),
                         titlesData: FlTitlesData(
                           show: true,
                           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -221,7 +225,9 @@ class SellerDashboardScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                  ),
+                  );
+                },
+              ),
                 ],
               ),
             ),
@@ -285,6 +291,7 @@ class SellerDashboardScreen extends StatelessWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
         backgroundColor: AppColors.sellerBadge,
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('New Product', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),

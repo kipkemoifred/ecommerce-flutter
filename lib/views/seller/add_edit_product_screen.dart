@@ -5,6 +5,7 @@ import '../../data/models/product_model.dart';
 import '../../controllers/product_controller.dart';
 import '../../controllers/auth_controller.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/utils/app_snackbar.dart';
 import '../common/custom_button.dart';
 import '../common/custom_text_field.dart';
 
@@ -28,6 +29,8 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
 
   String _selectedCategory = 'Electronics';
   List<String> _images = [];
+  bool _isFeatured = false;
+  bool _isSaving = false;
 
   // Preset image library for quick 1-tap testing
   final List<String> _presetImages = [
@@ -51,8 +54,10 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       _stockController.text = p.stock.toString();
       _selectedCategory = p.category;
       _images = List.from(p.images);
+      _isFeatured = p.isFeatured;
     } else {
       _images = [_presetImages[0]];
+      _isFeatured = false;
     }
   }
 
@@ -67,19 +72,46 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     super.dispose();
   }
 
-  void _handleSave() {
+  Future<void> _handleSave() async {
+    // If the seller typed/pasted a URL without clicking "Add", automatically include it
+    if (_imageUrlController.text.trim().isNotEmpty) {
+      final url = _imageUrlController.text.trim();
+      if (!_images.contains(url)) {
+        _images.add(url);
+      }
+      _imageUrlController.clear();
+    }
+
     if (!_formKey.currentState!.validate()) return;
+
+    if (_images.isEmpty) {
+      AppSnackbar.show(
+        'Image Required',
+        'Please select at least one image or enter an image URL.',
+        backgroundColor: Colors.orange.shade50,
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
 
     final productController = Get.find<ProductController>();
     final auth = Get.find<AuthController>();
     final user = auth.currentUser.value;
 
-    final price = double.tryParse(_priceController.text) ?? 0.0;
-    final origPrice = double.tryParse(_originalPriceController.text);
-    final stock = int.tryParse(_stockController.text) ?? 1;
+    final price = double.tryParse(_priceController.text.trim()) ?? 0.0;
+    final origPriceText = _originalPriceController.text.trim();
+    final origPrice = origPriceText.isNotEmpty ? double.tryParse(origPriceText) : null;
+    final stock = int.tryParse(_stockController.text.trim()) ?? 10;
+
+    final resolvedSellerId = (user != null && user.isSeller) ? user.id : 'user_sell_1';
+    final resolvedSellerName = (user != null && user.isSeller && user.storeName.isNotEmpty)
+        ? user.storeName
+        : (user?.name ?? 'TechNest Official');
 
     final now = DateTime.now();
 
+    bool success;
     if (widget.product != null) {
       final updated = widget.product!.copyWith(
         title: _titleController.text.trim(),
@@ -89,8 +121,9 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         stock: stock,
         category: _selectedCategory,
         images: _images.isNotEmpty ? _images : [_presetImages[0]],
+        isFeatured: _isFeatured,
       );
-      productController.updateProduct(updated);
+      success = await productController.updateProduct(updated);
     } else {
       final newProd = ProductModel(
         id: 'prod_${const Uuid().v4().substring(0, 8)}',
@@ -100,15 +133,23 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         originalPrice: origPrice,
         category: _selectedCategory,
         images: _images.isNotEmpty ? _images : [_presetImages[0]],
-        sellerId: user?.id ?? 'user_sell_1',
-        sellerName: user?.storeName.isNotEmpty == true ? user!.storeName : (user?.name ?? 'Merchant'),
+        sellerId: resolvedSellerId,
+        sellerName: resolvedSellerName,
         stock: stock,
+        isFeatured: _isFeatured,
+        isApproved: true,
         createdAt: now,
       );
-      productController.addProduct(newProd);
+      success = await productController.addProduct(newProd);
     }
 
-    Get.back();
+    if (mounted) {
+      if (success) {
+        Get.back();
+      } else {
+        setState(() => _isSaving = false);
+      }
+    }
   }
 
   @override
@@ -156,6 +197,12 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                             width: 80,
                             height: 80,
                             fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => Container(
+                              width: 80,
+                              height: 80,
+                              color: Colors.grey.shade200,
+                              child: const Icon(Icons.broken_image, color: Colors.grey),
+                            ),
                           ),
                         ),
                         if (_images.length > 1)
@@ -186,17 +233,27 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: _presetImages.map((img) {
+                    final isPicked = _images.contains(img);
                     return Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: InkWell(
                         onTap: () {
-                          if (!_images.contains(img)) {
+                          if (!isPicked) {
                             setState(() => _images.add(img));
                           }
                         },
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(img, width: 44, height: 44, fit: BoxFit.cover),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isPicked ? AppColors.primary : Colors.transparent,
+                              width: 2,
+                            ),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: Image.network(img, width: 44, height: 44, fit: BoxFit.cover),
+                          ),
                         ),
                       ),
                     );
@@ -250,30 +307,47 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Category dropdown
+              // Category dropdown (Safely wrapped in Obx with complete fallback categories)
               const Text('Category', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
               const SizedBox(height: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    isExpanded: true,
-                    value: _selectedCategory,
-                    items: productController.categories
-                        .where((c) => c.name != 'All')
-                        .map((c) => DropdownMenuItem(value: c.name, child: Text(c.name)))
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != null) setState(() => _selectedCategory = v);
-                    },
+              Obx(() {
+                final categoryNames = <String>{
+                  'Electronics',
+                  'Fashion',
+                  'Footwear',
+                  'Gaming',
+                  'Home & Living',
+                  ...productController.categories
+                      .map((c) => c.name)
+                      .where((n) => n.toLowerCase() != 'all'),
+                  _selectedCategory,
+                }.toList()..sort();
+
+                final effectiveValue = categoryNames.contains(_selectedCategory)
+                    ? _selectedCategory
+                    : categoryNames.first;
+
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
                   ),
-                ),
-              ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      value: effectiveValue,
+                      items: categoryNames
+                          .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                          .toList(),
+                      onChanged: (v) {
+                        if (v != null) setState(() => _selectedCategory = v);
+                      },
+                    ),
+                  ),
+                );
+              }),
               const SizedBox(height: 16),
 
               // Pricing Row
@@ -287,7 +361,8 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) return 'Required';
-                        if (double.tryParse(v) == null) return 'Invalid price';
+                        final val = double.tryParse(v);
+                        if (val == null || val <= 0) return 'Enter a valid price';
                         return null;
                       },
                     ),
@@ -313,7 +388,8 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                 keyboardType: TextInputType.number,
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Required';
-                  if (int.tryParse(v) == null) return 'Must be a number';
+                  final val = int.tryParse(v);
+                  if (val == null || val < 0) return 'Must be a positive number';
                   return null;
                 },
               ),
@@ -327,13 +403,39 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                 maxLines: 4,
                 validator: (v) => v == null || v.trim().isEmpty ? 'Please enter description' : null,
               ),
+              const SizedBox(height: 16),
+
+              // Featured Product Toggle
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.indigo.shade50.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.indigo.shade100),
+                ),
+                child: SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text(
+                    'Feature on Marketplace',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                  subtitle: const Text(
+                    'Highlight this product on the marketplace home screen',
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                  value: _isFeatured,
+                  activeThumbColor: AppColors.primary,
+                  onChanged: (val) => setState(() => _isFeatured = val),
+                ),
+              ),
               const SizedBox(height: 30),
 
-              // Submit Button
+              // Submit Button with reactive loading state
               CustomButton(
                 text: isEditing ? 'Save Changes' : 'Publish Product to Marketplace',
                 backgroundColor: AppColors.sellerBadge,
-                onPressed: _handleSave,
+                isLoading: _isSaving,
+                onPressed: _isSaving ? null : _handleSave,
               ),
               const SizedBox(height: 30),
             ],

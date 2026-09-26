@@ -8,17 +8,66 @@ import 'package:ecommerce/controllers/order_controller.dart';
 import 'package:ecommerce/controllers/review_controller.dart';
 import 'package:ecommerce/controllers/notification_controller.dart';
 import 'package:ecommerce/core/constants/app_constants.dart';
+import 'package:ecommerce/data/models/product_model.dart';
+import 'package:ecommerce/data/models/category_model.dart';
+import 'package:ecommerce/data/models/user_model.dart';
+import 'package:ecommerce/core/services/firebase_service.dart';
 
 void main() {
   setUp(() {
     Get.reset();
     Get.put(NotificationController());
-    Get.put(AuthController());
-    Get.put(ProductController());
+    final authController = Get.put(AuthController());
+    final productController = Get.put(ProductController());
     Get.put(CartController());
     Get.put(WishlistController());
     Get.put(OrderController());
     Get.put(ReviewController());
+
+    // Inject isolated test fixtures for unit tests so production code has no dummy data
+    productController.categories.assignAll([
+      CategoryModel(id: 'cat_all', name: 'All', icon: 'apps', imageUrl: ''),
+      CategoryModel(id: 'cat_tech', name: 'Tech', icon: 'devices', imageUrl: ''),
+    ]);
+    productController.products.assignAll([
+      ProductModel(
+        id: 'test_prod_1',
+        title: 'Sony WH-1000XM5 Wireless Headphones',
+        description: 'Industry-leading noise cancelling wireless headphones.',
+        price: 399.99,
+        originalPrice: 449.99,
+        category: 'Tech',
+        images: ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500'],
+        sellerId: 'user_sell_1',
+        sellerName: 'Audio Haven Official',
+        stock: 50,
+        rating: 4.8,
+        reviewCount: 120,
+      ),
+    ]);
+
+    final testCustomer = UserModel(
+      id: 'user_cust_1',
+      name: 'Sarah Connor',
+      email: 'sarah@example.com',
+      role: AppConstants.roleCustomer,
+    );
+    final testSeller = UserModel(
+      id: 'user_sell_1',
+      name: 'Audio Haven',
+      email: 'audio@example.com',
+      role: AppConstants.roleSeller,
+      storeName: 'Audio Haven Official',
+    );
+    final testAdmin = UserModel(
+      id: 'user_admin_1',
+      name: 'Admin User',
+      email: 'admin@example.com',
+      role: AppConstants.roleAdmin,
+    );
+
+    authController.allUsers.assignAll([testCustomer, testSeller, testAdmin]);
+    authController.currentUser.value = testCustomer;
   });
 
   test('ShopNest marketplace controllers and business logic unit test', () async {
@@ -95,5 +144,28 @@ void main() {
 
     authController.switchDemoRole(AppConstants.roleAdmin);
     expect(authController.isAdmin, isTrue);
+
+    // 10. Add Product Flow
+    final newProduct = ProductModel(
+      id: 'test_new_prod_1',
+      title: 'Ergonomic Mechanical Keyboard',
+      description: 'Custom hot-swappable switches with RGB backlight.',
+      price: 149.99,
+      originalPrice: 179.99,
+      category: 'Tech',
+      images: ['https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600'],
+      sellerId: 'user_sell_1',
+      sellerName: 'Audio Haven Official',
+      stock: 25,
+      isFeatured: true,
+      isApproved: true,
+    );
+
+    final addSuccess = await productController.addProduct(newProduct);
+    expect(addSuccess, isTrue);
+    expect(productController.products.any((p) => p.id == 'test_new_prod_1'), isTrue);
+
+    // Cleanup
+    await FirebaseService.deleteProduct('test_new_prod_1');
   });
 }

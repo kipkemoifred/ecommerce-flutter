@@ -143,7 +143,7 @@ class HomeScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'Featured Products',
+                    'Explore Marketplace',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -151,7 +151,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                   Obx(() => Text(
-                        '${productController.featuredProducts.length} items',
+                        '${productController.products.where((p) => p.isApproved).length} items',
                         style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                       )),
                 ],
@@ -410,11 +410,16 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildProductsGrid(ProductController controller) {
     return Obx(() {
-      final items = controller.featuredProducts;
+      final items = controller.products.where((p) => p.isApproved).toList()
+        ..sort((a, b) {
+          if (a.isFeatured && !b.isFeatured) return -1;
+          if (!a.isFeatured && b.isFeatured) return 1;
+          return b.createdAt.compareTo(a.createdAt);
+        });
       if (items.isEmpty) {
         return const Padding(
           padding: EdgeInsets.all(32),
-          child: Center(child: Text('No featured products found.')),
+          child: Center(child: Text('No products available right now.')),
         );
       }
 

@@ -12,8 +12,15 @@ class SellerController extends GetxController {
 
   String get sellerId => authController.currentUser.value?.id ?? 'user_sell_1';
 
-  List<ProductModel> get myProducts =>
-      productController.getProductsBySeller(sellerId);
+  List<ProductModel> get myProducts {
+    final currentId = sellerId;
+    return productController.products.where((p) {
+      if (p.sellerId == currentId) return true;
+      if (currentId == 'user_sell_1' && (p.sellerId.isEmpty || p.sellerId == 'user_sell_1')) return true;
+      if (authController.currentUser.value != null && p.sellerId == authController.currentUser.value!.id) return true;
+      return false;
+    }).toList();
+  }
 
   List<OrderModel> get myOrders =>
       orderController.getSellerOrders(sellerId);
@@ -33,8 +40,7 @@ class SellerController extends GetxController {
         }
       }
     }
-    // If demo has newly started, provide baseline sales
-    return total > 0 ? total : 2840.50;
+    return total;
   }
 
   int get totalCompletedOrders =>
@@ -43,7 +49,24 @@ class SellerController extends GetxController {
   int get pendingOrdersCount =>
       myOrders.where((o) => o.isActive).length;
 
-  // Monthly sales for charts
-  List<double> get weeklySalesData => [450.0, 720.0, 600.0, 890.0, 1100.0, 950.0, 1280.0];
+  // Real weekly sales computed from live orders
+  List<double> get weeklySalesData {
+    final days = List.filled(7, 0.0);
+    final now = DateTime.now();
+    for (var order in myOrders) {
+      if (!order.isCancelled) {
+        final diff = now.difference(order.createdAt).inDays;
+        if (diff >= 0 && diff < 7) {
+          final idx = 6 - diff;
+          for (var item in order.items) {
+            if (item.product.sellerId == sellerId) {
+              days[idx] += item.totalPrice;
+            }
+          }
+        }
+      }
+    }
+    return days;
+  }
   List<String> get weeklySalesDays => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 }

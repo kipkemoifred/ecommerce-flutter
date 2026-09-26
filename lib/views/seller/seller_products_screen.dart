@@ -216,6 +216,7 @@ class SellerProductsScreen extends StatelessWidget {
         );
       }),
       floatingActionButton: FloatingActionButton(
+        heroTag: null,
         backgroundColor: AppColors.sellerBadge,
         child: const Icon(Icons.add, color: Colors.white),
         onPressed: () => Get.to(() => const AddEditProductScreen()),

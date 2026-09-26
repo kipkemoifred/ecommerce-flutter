@@ -19,7 +19,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: 'sarah@example.com');
+  final _emailController = TextEditingController(text: 'sarh@example.com');
   final _passwordController = TextEditingController(text: 'password123');
   bool _obscurePassword = true;
   String _selectedRole = AppConstants.roleCustomer;
@@ -35,7 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _selectedRole = role;
       if (role == AppConstants.roleCustomer) {
-        _emailController.text = 'sarah@example.com';
+        _emailController.text = 'sarh@example.com';
         _passwordController.text = 'customer123';
       } else if (role == AppConstants.roleSeller) {
         _emailController.text = 'seller@technest.com';

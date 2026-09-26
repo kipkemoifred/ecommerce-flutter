@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
 import '../data/models/review_model.dart';
-import '../core/utils/dummy_data.dart';
 import '../core/utils/app_snackbar.dart';
 import '../core/services/firebase_service.dart';
 import 'product_controller.dart';
@@ -13,7 +12,28 @@ class ReviewController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    reviews.assignAll(DummyData.initialReviews);
+    if (FirebaseService.isFirebaseConfigured) {
+      _listenToFirestore();
+    }
+  }
+
+  void _listenToFirestore() async {
+    // 1. Immediate fetch from Firebase backend
+    try {
+      final initialReviews = await FirebaseService.fetchReviews();
+      if (initialReviews.isNotEmpty) {
+        reviews.assignAll(initialReviews);
+      }
+    } catch (e) {
+      debugPrint('[ReviewController] Error during initial fetch: $e');
+    }
+
+    // 2. Real-time stream listeners from Firebase backend
+    FirebaseService.streamReviews().listen((firestoreReviews) {
+      reviews.assignAll(firestoreReviews);
+    }, onError: (e) {
+      debugPrint('[ReviewController] Reviews stream error: $e');
+    });
   }
 
   List<ReviewModel> getReviewsForProduct(String productId) {

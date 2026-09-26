@@ -4,7 +4,6 @@ import 'package:uuid/uuid.dart';
 import '../data/models/order_model.dart';
 import '../data/models/cart_item_model.dart';
 import '../core/constants/app_constants.dart';
-import '../core/utils/dummy_data.dart';
 import '../core/utils/app_snackbar.dart';
 import '../core/services/firebase_service.dart';
 import 'notification_controller.dart';
@@ -17,21 +16,33 @@ class OrderController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    orders.assignAll(DummyData.initialOrders);
-    _listenToFirestore();
+    if (FirebaseService.isFirebaseConfigured) {
+      isLoading.value = true;
+      _listenToFirestore();
+    }
   }
 
-  void _listenToFirestore() {
-    if (FirebaseService.isFirebaseConfigured && FirebaseService.ordersCollection != null) {
-      FirebaseService.ordersCollection!.snapshots().listen((snapshot) {
-        if (snapshot.docs.isNotEmpty) {
-          final firestoreOrders = snapshot.docs
-              .map((d) => OrderModel.fromMap(d.data()))
-              .toList();
-          orders.assignAll(firestoreOrders);
-        }
-      });
+  void _listenToFirestore() async {
+    // 1. Immediate fetch from Firebase backend
+    try {
+      final initialOrders = await FirebaseService.fetchOrders();
+      if (initialOrders.isNotEmpty) {
+        orders.assignAll(initialOrders);
+      }
+    } catch (e) {
+      debugPrint('[OrderController] Error during initial fetch: $e');
+    } finally {
+      isLoading.value = false;
     }
+
+    // 2. Real-time stream listeners from Firebase backend
+    FirebaseService.streamOrders().listen((firestoreOrders) {
+      orders.assignAll(firestoreOrders);
+      isLoading.value = false;
+    }, onError: (e) {
+      debugPrint('[OrderController] Orders stream error: $e');
+      isLoading.value = false;
+    });
   }
 
   List<OrderModel> getCustomerOrders(String customerId) {

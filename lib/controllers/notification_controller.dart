@@ -1,7 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
 import '../data/models/notification_model.dart';
-import '../core/utils/dummy_data.dart';
 import '../core/services/firebase_service.dart';
 
 class NotificationController extends GetxController {
@@ -10,7 +10,28 @@ class NotificationController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    notifications.assignAll(DummyData.initialNotifications);
+    if (FirebaseService.isFirebaseConfigured) {
+      _listenToFirestore();
+    }
+  }
+
+  void _listenToFirestore() async {
+    // 1. Immediate fetch from Firebase backend
+    try {
+      final initialNotifs = await FirebaseService.fetchNotifications();
+      if (initialNotifs.isNotEmpty) {
+        notifications.assignAll(initialNotifs);
+      }
+    } catch (e) {
+      debugPrint('[NotificationController] Error during initial fetch: $e');
+    }
+
+    // 2. Real-time stream listeners from Firebase backend
+    FirebaseService.streamNotifications().listen((firestoreNotifs) {
+      notifications.assignAll(firestoreNotifs);
+    }, onError: (e) {
+      debugPrint('[NotificationController] Notifications stream error: $e');
+    });
   }
 
   List<NotificationModel> getUserNotifications(String userId) {

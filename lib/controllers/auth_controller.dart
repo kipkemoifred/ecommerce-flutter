@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../data/models/user_model.dart';
 import '../core/constants/app_constants.dart';
-import '../core/utils/dummy_data.dart';
 import '../core/utils/app_snackbar.dart';
 import '../core/services/firebase_service.dart';
 
@@ -20,23 +19,63 @@ class AuthController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Initialize users list
-    allUsers.assignAll(DummyData.initialUsers);
-    // Default logged in as demo customer for instant testing
-    currentUser.value = DummyData.customerUser;
     _listenToFirestore();
+    _checkFirebaseAuthState();
   }
 
-  void _listenToFirestore() {
-    if (FirebaseService.isFirebaseConfigured && FirebaseService.usersCollection != null) {
-      FirebaseService.usersCollection!.snapshots().listen((snapshot) {
-        if (snapshot.docs.isNotEmpty) {
-          final firestoreUsers = snapshot.docs
-              .map((d) => UserModel.fromMap(d.data()))
-              .toList();
-          allUsers.assignAll(firestoreUsers);
+  void _checkFirebaseAuthState() {
+    if (FirebaseService.auth != null) {
+      FirebaseService.auth!.authStateChanges().listen((user) async {
+        if (user != null) {
+          final doc = await FirebaseService.usersCollection?.doc(user.uid).get();
+          if (doc != null && doc.exists && doc.data() != null) {
+            currentUser.value = UserModel.fromMap(doc.data()!);
+          } else {
+            final q = await FirebaseService.usersCollection?.where('email', isEqualTo: user.email).limit(1).get();
+            if (q != null && q.docs.isNotEmpty) {
+              currentUser.value = UserModel.fromMap(q.docs.first.data());
+            }
+          }
         }
       });
+    }
+  }
+
+  void _listenToFirestore() async {
+    // 1. Immediate fetch from Firebase backend
+    try {
+      final initialUsers = await FirebaseService.fetchUsers();
+      if (initialUsers.isNotEmpty) {
+        allUsers.assignAll(initialUsers);
+        _syncCurrentUser(initialUsers);
+      }
+    } catch (e) {
+      debugPrint('[AuthController] Error during initial fetch: $e');
+    }
+
+    // 2. Real-time stream listeners from Firebase backend
+    FirebaseService.streamUsers().listen((firestoreUsers) {
+      if (firestoreUsers.isNotEmpty) {
+        allUsers.assignAll(firestoreUsers);
+        _syncCurrentUser(firestoreUsers);
+      }
+    }, onError: (e) {
+      debugPrint('[AuthController] Users stream error: $e');
+    });
+  }
+
+  void _syncCurrentUser(List<UserModel> users) {
+    if (currentUser.value != null) {
+      final refreshed = users.firstWhereOrNull((u) => u.id == currentUser.value!.id);
+      if (refreshed != null) {
+        currentUser.value = refreshed;
+      }
+    } else if (users.isNotEmpty) {
+      if (FirebaseService.auth?.currentUser != null) {
+        final matched = users.firstWhereOrNull((u) => u.id == FirebaseService.auth!.currentUser!.uid);
+        if (matched != null) currentUser.value = matched;
+      }
+      currentUser.value ??= users.firstWhereOrNull((u) => u.role == AppConstants.roleCustomer) ?? users.first;
     }
   }
 
@@ -223,20 +262,25 @@ class AuthController extends GetxController {
 
   // Quick switch role utility for evaluating all three perspectives seamlessly
   void switchDemoRole(String role) {
-    if (role == AppConstants.roleCustomer) {
-      currentUser.value = DummyData.customerUser;
-    } else if (role == AppConstants.roleSeller) {
-      currentUser.value = DummyData.sellerUser;
-    } else if (role == AppConstants.roleAdmin) {
-      currentUser.value = DummyData.adminUser;
+    final liveUser = allUsers.firstWhereOrNull((u) => u.role == role);
+    if (liveUser != null) {
+      currentUser.value = liveUser;
+      AppSnackbar.show(
+        'Switched Role',
+        'Now viewing as ${currentUser.value?.name} (${role.toUpperCase()})',
+        backgroundColor: Colors.indigo.shade50,
+        colorText: Colors.indigo.shade900,
+        snackPosition: SnackPosition.TOP,
+      );
+    } else {
+      AppSnackbar.show(
+        'Role Not Found',
+        'No user with role ${role.toUpperCase()} found.',
+        backgroundColor: Colors.orange.shade50,
+        colorText: Colors.orange.shade900,
+        snackPosition: SnackPosition.TOP,
+      );
     }
-    AppSnackbar.show(
-      'Switched Role',
-      'Now viewing as ${currentUser.value?.name} (${role.toUpperCase()})',
-      backgroundColor: Colors.indigo.shade50,
-      colorText: Colors.indigo.shade900,
-      snackPosition: SnackPosition.TOP,
-    );
   }
 
   void toggleUserStatus(String userId) {

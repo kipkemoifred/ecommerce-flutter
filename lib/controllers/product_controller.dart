@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../data/models/product_model.dart';
 import '../data/models/category_model.dart';
-import '../core/utils/dummy_data.dart';
 import '../core/utils/app_snackbar.dart';
 import '../core/services/api_service.dart';
 import '../core/services/firebase_service.dart';
 
 class ProductController extends GetxController {
   final RxList<ProductModel> products = <ProductModel>[].obs;
-  final RxList<CategoryModel> categories = <CategoryModel>[].obs;
+  final RxList<CategoryModel> categories = <CategoryModel>[
+    CategoryModel(id: 'cat_all', name: 'All', icon: 'apps', imageUrl: ''),
+  ].obs;
 
   // Filter & Search states
   final RxString selectedCategory = 'All'.obs;
@@ -25,22 +26,51 @@ class ProductController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    products.assignAll(DummyData.initialProducts);
-    categories.assignAll(DummyData.categories);
+    isLoading.value = true;
     _listenToFirestore();
   }
 
-  void _listenToFirestore() {
-    if (FirebaseService.isFirebaseConfigured && FirebaseService.productsCollection != null) {
-      FirebaseService.productsCollection!.snapshots().listen((snapshot) {
-        if (snapshot.docs.isNotEmpty) {
-          final firestoreProducts = snapshot.docs
-              .map((d) => ProductModel.fromMap(d.data()))
-              .toList();
-          products.assignAll(firestoreProducts);
+  void _listenToFirestore() async {
+    // 1. Immediate fetch from Firebase backend
+    try {
+      final initialProducts = await FirebaseService.fetchProducts();
+      if (initialProducts.isNotEmpty) {
+        products.assignAll(initialProducts);
+      }
+      final initialCategories = await FirebaseService.fetchCategories();
+      if (initialCategories.isNotEmpty) {
+        if (!initialCategories.any((c) => c.name.toLowerCase() == 'all')) {
+          initialCategories.insert(0, CategoryModel(id: 'cat_all', name: 'All', icon: 'apps', imageUrl: ''));
         }
-      });
+        categories.assignAll(initialCategories);
+      }
+    } catch (e) {
+      debugPrint('[ProductController] Error during initial fetch: $e');
+    } finally {
+      isLoading.value = false;
     }
+
+    // 2. Real-time stream listeners from Firebase backend
+    FirebaseService.streamProducts().listen((firestoreProducts) {
+      if (firestoreProducts.isNotEmpty) {
+        products.assignAll(firestoreProducts);
+      }
+      isLoading.value = false;
+    }, onError: (e) {
+      debugPrint('[ProductController] Products stream error: $e');
+      isLoading.value = false;
+    });
+
+    FirebaseService.streamCategories().listen((firestoreCategories) {
+      if (firestoreCategories.isNotEmpty) {
+        if (!firestoreCategories.any((c) => c.name.toLowerCase() == 'all')) {
+          firestoreCategories.insert(0, CategoryModel(id: 'cat_all', name: 'All', icon: 'apps', imageUrl: ''));
+        }
+        categories.assignAll(firestoreCategories);
+      }
+    }, onError: (e) {
+      debugPrint('[ProductController] Categories stream error: $e');
+    });
   }
 
   // Filtered Products computation
@@ -128,23 +158,51 @@ class ProductController extends GetxController {
   }
 
   // Seller/Admin Actions
-  void addProduct(ProductModel product) {
-    products.insert(0, product);
-    FirebaseService.saveProduct(product);
-    AppSnackbar.show(
-      'Product Published',
-      '${product.title} has been added to marketplace.',
-      backgroundColor: Colors.green.shade50,
-      colorText: Colors.green.shade900,
-    );
+  Future<bool> addProduct(ProductModel product) async {
+    isLoading.value = true;
+    try {
+      final existingIndex = products.indexWhere((p) => p.id == product.id);
+      if (existingIndex != -1) {
+        products[existingIndex] = product;
+      } else {
+        products.insert(0, product);
+      }
+      products.refresh();
+
+      await FirebaseService.saveProduct(product);
+
+      AppSnackbar.show(
+        'Product Published 🎉',
+        '${product.title} has been added to marketplace.',
+        backgroundColor: Colors.green.shade50,
+        colorText: Colors.green.shade900,
+      );
+      return true;
+    } catch (e) {
+      debugPrint('[ProductController] Error adding product: $e');
+      AppSnackbar.show('Error', 'Failed to save product: $e');
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
   }
 
-  void updateProduct(ProductModel product) {
-    final index = products.indexWhere((p) => p.id == product.id);
-    if (index != -1) {
-      products[index] = product;
-      FirebaseService.saveProduct(product);
+  Future<bool> updateProduct(ProductModel product) async {
+    isLoading.value = true;
+    try {
+      final index = products.indexWhere((p) => p.id == product.id);
+      if (index != -1) {
+        products[index] = product;
+        products.refresh();
+      }
+      await FirebaseService.saveProduct(product);
       AppSnackbar.show('Product Updated', '${product.title} updated successfully.');
+      return true;
+    } catch (e) {
+      debugPrint('[ProductController] Error updating product: $e');
+      return false;
+    } finally {
+      isLoading.value = false;
     }
   }
 
